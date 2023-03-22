@@ -198,7 +198,7 @@ exports.generateSecret = function generateSecret (options) {
     code = new Array(digits + 1).join('0') + code.toString(10);
   
     // return length number off digits
-    return {otp:code.substr(-digits),digest:digest.toString('base64')};
+    return code.substr(-digits)
   };
 
   //exports.totp = function totpGenerate (options) {
@@ -243,6 +243,7 @@ exports.generateSecret = function generateSecret (options) {
     var counter = options.counter;
     var encoding = options.encoding || 'ascii';
     var algorithm = (options.algorithm || 'sha1').toLowerCase();
+
   
     // Backwards compatibility - deprecated
     if (options.key != null) {
@@ -333,7 +334,7 @@ exports.generateSecret = function generateSecret (options) {
       options.counter = i;
       console.log(counter)
       // domain-specific constant-time comparison for integer codes
-      const otp = exports.hotp(options).otp
+      const otp = exports.hotp(options)
       console.log(otp)
       if (parseInt(otp) === token) {
         // found a matching code, return delta

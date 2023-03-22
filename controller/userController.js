@@ -35,9 +35,7 @@ try{
     const OTP = utility.totp({secret: user.secret.base32,
         encoding: 'base32',
     })
-    user.lastDigest = OTP.digest
-    await user.save()
-    return res.status(200).json({OTP:OTP.otp})
+    return res.status(200).json({OTP})
 
 }
 catch(err){
@@ -54,8 +52,6 @@ exports.verifyOTP = async(req,res,next) => {
         console.log("_________hey__________")
         console.log(user.secret.base32)
         //verify OTP
-        const digest = Buffer.from(user.lastDigest,"base64")
-        console.log(digest)
         const verifyOTP = utility.verifyOTP({secret:user.secret.ascii,token:req.body.otp,window:2})
         console.log(verifyOTP)
         return res.status(200).json({verifyOTP})
