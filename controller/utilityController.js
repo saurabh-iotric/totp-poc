@@ -5,27 +5,27 @@ var crypto = require('crypto');
 var url = require('url');
 var util = require('util');
 
-exports.generateSecretASCII = function generateSecretASCII (length, symbols) {
+exports.generateASCIIFromSecret = (length, symbols) => {
     var bytes = crypto.randomBytes(length || 32);
-    var set = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz';
+    var set = 'ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz0123456789';
     if (symbols) {
       set += '!@#$%^&*()<>?/[]{},.:;';
     }
   
-    var output = '';
+    var secret = '';
     for (var i = 0, l = bytes.length; i < l; i++) {
-      output += set[Math.floor(bytes[i] / 255.0 * (set.length - 1))];
+      secret += set[Math.floor(bytes[i] / 255.0 * (set.length - 1))];
     }
-    return output;
+    return secret;
   };
 exports.generateSecret = function generateSecret (options) {
     // options
     if (!options) options = {};
     var length = options.length || 32;
-    var name = options.name || 'SecretKey';
-    var qr_codes = options.qr_codes || false;
-    var google_auth_qr = options.google_auth_qr || false;
-    var otpauth_url = options.otpauth_url != null ? options.otpauth_url : true;
+    var appName = options.app || 'SecretKey';
+    var qrCodes = options.qrCodes || false;
+    var googleAuthQr = options.googleAuthQr || false;
+    var otpAuthUrl = options.otpAuthUrl != null ? options.otpAuthUrl : true;
     var symbols = true;
     var issuer = options.issuer;
   
@@ -35,7 +35,7 @@ exports.generateSecret = function generateSecret (options) {
     }
   
     // generate an ascii key
-    var key = this.generateSecretASCII(length, symbols);
+    var key = this.generateASCIIFromSecret(length, symbols);
   
     // return a SecretKey with ascii, hex, and base32
     var SecretKey = {};
@@ -44,7 +44,7 @@ exports.generateSecret = function generateSecret (options) {
     SecretKey.base32 = base32.encode(Buffer(key)).toString().replace(/=/g, '');
   
     // generate some qr codes if requested
-    if (qr_codes) {
+    if (qrCodes) {
       console.warn('Speakeasy - Deprecation Notice - generateSecret() QR codes are deprecated and no longer supported. Please use your own QR code implementation.');
       SecretKey.qr_code_ascii = 'https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=' + encodeURIComponent(SecretKey.ascii);
       SecretKey.qr_code_hex = 'https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=' + encodeURIComponent(SecretKey.hex);
@@ -52,22 +52,24 @@ exports.generateSecret = function generateSecret (options) {
     }
   
     // add in the Google Authenticator-compatible otpauth URL
-    if (otpauth_url) {
+    if (otpAuthUrl) {
       SecretKey.otpauth_url = exports.otpauthURL({
         secret: SecretKey.ascii,
-        label: name,
-        issuer: issuer
+        label: appName ,
+        issuer: issuer,
+        email : options.email
       });
     }
   
     // generate a QR code for use in Google Authenticator if requested
-    if (google_auth_qr) {
+    if (googleAuthQr) {
       console.warn('Speakeasy - Deprecation Notice - generateSecret() Google Auth QR code is deprecated and no longer supported. Please use your own QR code implementation.');
       SecretKey.google_auth_qr = 'https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=' + encodeURIComponent(exports.otpauthURL({ secret: SecretKey.base32, label: name }));
     }
   
     return SecretKey;
   };
+
   exports.otpauthURL = function otpauthURL (options) {
     // unpack options
     var secret = options.secret;
@@ -79,6 +81,10 @@ exports.generateSecret = function generateSecret (options) {
     var digits = options.digits || 6;
     var period = options.period || 30;
     var encoding = options.encoding || 'ascii';
+    var userEmail = options.email || '';
+
+    console.log("--label",label)
+    console.log(userEmail)
   
     // validate type
     switch (type) {
@@ -110,6 +116,7 @@ exports.generateSecret = function generateSecret (options) {
     }
   
     // validate algorithm
+    /*
     if (algorithm != null) {
       switch (algorithm.toUpperCase()) {
         case 'SHA1':
@@ -121,8 +128,9 @@ exports.generateSecret = function generateSecret (options) {
       }
       query.algorithm = algorithm.toUpperCase();
     }
-  
-    // validate digits
+    */
+
+    /* validate digits
     if (digits != null) {
       if (isNaN(digits)) {
         throw new Error('Speakeasy - otpauthURL - Invalid digits `' + digits + '`');
@@ -136,23 +144,25 @@ exports.generateSecret = function generateSecret (options) {
         }
       }
       query.digits = digits;
-    }
+    }*/
   
     // validate period
-    if (period != null) {
+    /*if (period != null) {
       period = parseInt(period, 10);
       if (~~period !== period) {
         throw new Error('Speakeasy - otpauthURL - Invalid period `' + period + '`');
       }
       query.period = period;
-    }
+    }*/
   
     // return url
-    return url.format({
+   /* const urlQr = `otpauth://totp/${label}:${userEmail}?secret=${secret}&issuer=${issuer}`
+    return urlQr*/
+   return url.format({
       protocol: 'otpauth',
       slashes: true,
       hostname: type,
-      pathname: encodeURIComponent(label),
+      pathname: encodeURIComponent(`${label}:${userEmail}`),
       query: query
     });
   };
@@ -182,8 +192,7 @@ exports.generateSecret = function generateSecret (options) {
   
     // digest the options
     var digest = options.digest || exports.digest(options);
-    console.log("___________DIGEST___________")
-    console.log(digest)
+   
     // compute HOTP offset
     var offset = digest[digest.length - 1] & 0xf;
   

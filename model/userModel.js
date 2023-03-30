@@ -1,4 +1,4 @@
- const mongoose = require('mongoose')
+ /*const mongoose = require('mongoose')
 
  const userSchema = new mongoose.Schema({
     email:{
@@ -14,7 +14,8 @@
         type :Date,
         required:false
     },
-    lastDigest:String
+    lastDigest:String,
+    recoveryHashToken:String
  })
 
- exports.userModel = mongoose.model("User",userSchema);
+ exports.userModel = mongoose.model("User",userSchema);*/
